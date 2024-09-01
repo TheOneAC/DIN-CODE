@@ -11,7 +11,8 @@ import torch.utils.data
 import torch.utils.data as Data
 ##from tqdm import tqdm
 from sklearn.model_selection import train_test_split
-
+from sklearn.preprocessing import LabelEncoder, OrdinalEncoder, KBinsDiscretizer
+import os
 
 """# 三.数据处理
 
@@ -20,7 +21,7 @@ from sklearn.model_selection import train_test_split
 #### 3.这里数据处理的目的是形成学生答题序列，把文本数据转化为唯一的数值编码，作为模型的输入，用于预测的目标试题
 """
 
-def AmazonBookPreprocess(dataframe, seq_len=40):
+def AmazonBookPreprocess(dataframe, seq_len=20):
     """
     数据集处理
     :param dataframe: 未处理的数据集
@@ -62,15 +63,28 @@ def AmazonBookPreprocess(dataframe, seq_len=40):
     data = data.apply(cate_encoder.transform).join(labels)
     return data
 
+class AmazonBooksData(torch.utils.data.Dataset):
+    def __init__(self, all_data):
+        self.data_df = all_data
+
+    def __len__(self):
+        return len(self.data_df)
+
+    def __getitem__(self, idx):
+        x = self.data_df.iloc[idx][:-1]
+        y = self.data_df.label.values
+        return x, y
+
 def get_amazon_books_dataloader(train_path="amazon-books-100k.txt", batch_size=4096):
     print("Start loading amazon books data....")
-    prefix = "../amazon_books/"
+    prefix = "data/amazon_books/"
     train_path = prefix + train_path
     print(train_path)
     data = pd.read_csv(train_path)
     data = AmazonBookPreprocess(data)
 
     #模型输入
+    
     data_X = data.iloc[:,:-1]
     #模型输出
     data_y = data.label.values
@@ -89,11 +103,20 @@ def get_amazon_books_dataloader(train_path="amazon-books-100k.txt", batch_size=4
     train_set = Data.TensorDataset(train_X, train_y)
     val_set = Data.TensorDataset(val_X, val_y)
     test_set = Data.TensorDataset(test_X, test_y)
+    '''
+    all_dataset = AmazonBooksData(data)
+    train_size = int(0.9 * len(all_dataset))
+    test_size = len(all_dataset) - train_size
+
+    train_set, test_set = torch.utils.data.random_split(all_dataset, [train_size, test_size])
+    train_set, val_set = torch.utils.data.random_split(train_set, [train_size - test_size, test_size])
+    '''
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=4)
     valid_Loader = torch.utils.data.DataLoader(val_set, batch_size=batch_size, shuffle=True, num_workers=4)
     test_loader = torch.utils.data.DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=4)
-    # field_dims = dataset.field_dims
-    field_dims = data.max().max()
+    #field_dims = all_dataset.field_dims
+    #fields = data.max().max()
     # print(field_dims)
     # print(sum(field_dims))
+    field_dims = data.max().max()
     return field_dims, train_loader, valid_Loader, test_loader

@@ -115,7 +115,7 @@ def main(dataset_name,
                 paths + f"/{model_name}logs2_{K}_{batch_size}_{learning_rate}_{weight_decay}_{time_fix}.p",
                 "a+") as fout:
             fout.write("hint:{}\n".format(hint))
-            fout.write("feature_nums:{}\n".format(sum(field_dims)))
+            #fout.write("feature_nums:{}\n".format(sum(field_dims)))
             fout.write("model_name:{}\t Batch_size:{}\tlearning_rate:{}\t"
                        "StartTime:{}\tweight_decay:{}\n"
                        .format(model_name, batch_size, learning_rate,
@@ -128,7 +128,7 @@ def main(dataset_name,
             optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate,
                                          weight_decay=weight_decay, )
 
-            early_stopping = EarlyStopping(patience=4, verbose=True)
+            early_stopping = EarlyStopping(patience=6, delta=0.001, verbose=True)
 
             val_auc_best = 0
             auc_index_record = ""
@@ -183,14 +183,14 @@ def main(dataset_name,
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset_name', default='frappe')
-    parser.add_argument('--save_dir', default='../chkpts/gdcn/')
-    parser.add_argument('--data_path', default="data/", help="")
-    parser.add_argument('--model_name', default='fm')
-    parser.add_argument('--epoch', type=int, default=50)
-    parser.add_argument('--emb_dim', type=int, default=16)
+    parser.add_argument('--dataset_name', default='amazon_books')
+    parser.add_argument('--save_dir', default='../chkpts/din/')
+    parser.add_argument('--data_path', default="amazon-books-100k.txt", help="")
+    parser.add_argument('--model_name', default='din')
+    parser.add_argument('--epoch', type=int, default=5)
+    parser.add_argument('--emb_dim', type=int, default=8)
     parser.add_argument('--learning_rate', type=float, default=0.001)
-    parser.add_argument('--batch_size', type=int, default=4096)
+    parser.add_argument('--batch_size', type=int, default=512)
     parser.add_argument('--weight_decay', type=float, default=1e-6)
     parser.add_argument('--device', default='cuda:0', help="cuda:0")
     parser.add_argument('--choice', default=0, type=int)
@@ -200,9 +200,9 @@ if __name__ == '__main__':
 
     model_names = []
     if args.choice == 0:
-        model_names = ["fm", "deepfm", "gdcn_s", "gdcn_p"]
+        model_names = ["din"]
     elif args.choice == 1:
-        model_names = ["fm"]
+        model_names = ["din"]
 
     print(model_names)
 
