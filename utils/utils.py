@@ -8,6 +8,17 @@ import random
 import numpy as np
 import torch
 
+import pickle
+
+def DumpPick(data_dict, filename):
+    with open(filename, 'wb') as f:
+        pickle.dump(data_dict, f)
+
+# 从文件中读取
+def LoadPick(filename):
+    with open(filename, 'rb') as f:
+        return pickle.load(f)
+
 
 def count_params(model):
     params = sum(param.numel() for param in model.parameters())
