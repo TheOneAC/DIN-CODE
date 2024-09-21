@@ -38,6 +38,7 @@ class Model(nn.Module):
         """
         # 1.排除掉推荐目标
         user, item_feat, hist_item, hist_cate = x
+        user = user.int().cpu()
         #print(hist_item)
         #print(hist_item.dim())
         # 2.记录之前填充为0的行为位置

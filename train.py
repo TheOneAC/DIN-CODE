@@ -58,7 +58,7 @@ def train(model,
     for i, (user_item, label) in enumerate(tqdm.tqdm(data_loader)):
         # print(user_item)
         label = label.float()
-        user_item = user_item.int()
+        user_item = user_item
         #user_item = user_item.long()
         #user_item = user_item.cpu()
         label = label.cpu()
