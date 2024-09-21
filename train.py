@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 """
-@project:GDCN
+@project:
 """
 
 import argparse
@@ -17,6 +17,7 @@ from models import *
 from utils.early_stopping import EarlyStopping
 from utils.utils import count_params
 from models.din import DIN
+from models.model import Model, SEQ_ATTENTION
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # print("=======================", DEVICE)
@@ -25,7 +26,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # print(torch.cuda.get_device_name())
 
 DataLoaders = {
-    "amazon_books": lambda datapath, batch_size: get_amazon_books_dataloader(train_path=datapath, batch_size=batch_size),
+    "amazon_books": lambda datapath, batch_size, hist_len: get_amazon_books_dataloader(train_path=datapath, batch_size=batch_size, hist_len=hist_len),
 }
 
 
@@ -34,10 +35,11 @@ def get_model(
         field_dims,
         feat_num,
         embed_dim=16,
+        hist_len=10,
         mlp_layers=[128, 64, 16, 1]):
-    if name == "din":
-        #return DIN(field_dims, embed_dim)
-        return DIN(feature_dim=field_dims, embed_dim=embed_dim, feat_num=feat_num, mlp_layers=mlp_layers, dropout=0.02)
+    if name in SEQ_ATTENTION.keys():
+        #return DIN(feature_dim=field_dims, embed_dim=embed_dim, feat_num=feat_num, mlp_layers=mlp_layers, dropout=0.02)
+        return Model(name = name, feature_dim=field_dims, embed_dim=embed_dim, feat_num=feat_num, mlp_layers=mlp_layers, dropout=0.02, hist_len=10)
     
     else:
         raise ValueError("No valid model name.")
@@ -56,6 +58,7 @@ def train(model,
     for i, (user_item, label) in enumerate(tqdm.tqdm(data_loader)):
         # print(user_item)
         label = label.float()
+        user_item = user_item.int()
         #user_item = user_item.long()
         #user_item = user_item.cpu()
         label = label.cpu()
@@ -101,10 +104,11 @@ def main(dataset_name,
          weight_decay,
          save_dir,
          repeat=1,
-         emb_dim=20,
+         emb_dim=8,
+         hist_len=10,
          hint=""):
     # Load data
-    feat_num, field_dims, trainLoader, validLoader, testLoader = DataLoaders[dataset_name](data_path, batch_size)
+    feat_num, field_dims, trainLoader, validLoader, testLoader = DataLoaders[dataset_name](data_path, batch_size, hist_len)
     time_fix = time.strftime("%m%d%H%M%S", time.localtime())
     for K in [emb_dim]:
         paths = os.path.join(save_dir, str(K), model_name)
@@ -122,7 +126,7 @@ def main(dataset_name,
                                time.strftime("%d%H%M%S", time.localtime()), weight_decay))
             print("Start train -- K : {}".format(K))
             criterion = torch.nn.BCELoss()
-            model = get_model(name=model_name,field_dims=field_dims,embed_dim=K,feat_num=feat_num).cpu()
+            model = get_model(name=model_name,field_dims=field_dims,embed_dim=K,feat_num=feat_num, hist_len=hist_len).cpu()
             params = count_params(model)
             fout.write("count_params:{}\n".format(params))
             optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate,
@@ -184,14 +188,14 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset_name', default='amazon_books')
-    parser.add_argument('--save_dir', default='../chkpts/din/')
-    #parser.add_argument('--data_path', default="amazon-books-100k.txt", help="")
-    parser.add_argument('--data_path', default="tmp", help="")
-    parser.add_argument('--model_name', default='din')
+    parser.add_argument('--save_dir', default='../chkpts/seq/')
+    parser.add_argument('--data_path', default="amazon-books-100k.txt", help="")
+    #parser.add_argument('--data_path', default="tmp", help="")
+    parser.add_argument('--model_name', default='DIN')
     parser.add_argument('--epoch', type=int, default=20)
     parser.add_argument('--emb_dim', type=int, default=8)
     parser.add_argument('--learning_rate', type=float, default=0.001)
-    parser.add_argument('--batch_size', type=int, default=16)
+    parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--weight_decay', type=float, default=1e-5)
     parser.add_argument('--device', default='cuda:0', help="cuda:0")
     parser.add_argument('--choice', default=0, type=int)
@@ -201,9 +205,9 @@ if __name__ == '__main__':
 
     model_names = []
     if args.choice == 0:
-        model_names = ["din"]
+        model_names = ["DIN"]
     elif args.choice == 1:
-        model_names = ["din"]
+        model_names = ["DIN","DICN"]
 
     print(model_names)
 
